@@ -8,6 +8,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import org.hibernate.annotations.TenantId;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -34,6 +35,7 @@ public class DeliveryAttempt {
     @Column(name = "id", nullable = false, updatable = false)
     private UUID id;
 
+    @TenantId
     @Column(name = "tenant_id", nullable = false, updatable = false)
     private UUID tenantId;
 

@@ -56,6 +56,16 @@ These are load-bearing. Do not change them without updating `docs/02-decision-lo
 6. **Every state transition is audited.** Writing a new status onto a notification without an
    accompanying audit event is a bug.
 7. **Delivery is at-least-once.** Do not claim exactly-once anywhere in code, comments, or docs.
+8. **Establish the tenant scope before the transaction opens.** Hibernate binds the tenant
+   identifier when the session opens, not per statement, so changing `TenantContext` inside an
+   open transaction silently does nothing. Set it at the edge: the servlet filter for requests,
+   and explicitly around each work item in the dispatcher — never inside a `@Transactional`
+   method.
+9. **`TenantScope.ROOT` is the only unrestricted scope and is granted in exactly one place**
+   (`TenantContextFilter`, to a platform admin). The default for any unscoped thread is
+   `TenantScope.UNSCOPED`, which sees nothing. Never default to root.
+10. **Cross-tenant reads must be annotated `@CrossTenantQuery` with a reason**, so every one of
+    them is greppable and reviewable.
 
 ## Package layout
 
@@ -93,6 +103,9 @@ The feature package is `delivery/`, not `notification/`, to avoid the unreadable
 
 ## Testing expectations
 
+- Integration tests must **not** be `@Transactional` when they exercise tenant scope — a
+  test-wide transaction pins every statement to one scope and the test stops proving anything
+  (see ADR-013).
 - Algorithms (rate limiter, backoff calculator, template renderer, state machine, fairness
   selector) get unit tests with no Spring context.
 - Flows (auth, RBAC, tenant isolation, send → dispatch → delivered, idempotency, `429`,

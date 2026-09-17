@@ -2,6 +2,7 @@ package com.notifly.notification.common.model;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.MappedSuperclass;
+import org.hibernate.annotations.TenantId;
 
 import java.util.UUID;
 
@@ -20,6 +21,7 @@ import java.util.UUID;
 @MappedSuperclass
 public abstract class TenantOwnedEntity extends BaseEntity {
 
+    @TenantId
     @Column(name = "tenant_id", nullable = false, updatable = false)
     private UUID tenantId;
 

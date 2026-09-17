@@ -6,6 +6,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import org.hibernate.annotations.TenantId;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
@@ -33,6 +34,7 @@ public class IdempotencyKey {
     @Column(name = "id", nullable = false, updatable = false)
     private UUID id;
 
+    @TenantId
     @Column(name = "tenant_id", nullable = false, updatable = false)
     private UUID tenantId;
 

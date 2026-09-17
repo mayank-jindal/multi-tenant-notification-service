@@ -1,0 +1,15 @@
+# Test profile. The datasource is supplied by Testcontainers via @ServiceConnection, so no
+# connection details appear here — tests never touch the developer's local database.
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  flyway:
+    enabled: true
+    clean-disabled: false
+
+logging:
+  level:
+    com.notifly.notification: DEBUG
+    org.hibernate.SQL: INFO

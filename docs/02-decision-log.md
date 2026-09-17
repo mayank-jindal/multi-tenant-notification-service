@@ -163,3 +163,49 @@ audit trail specifically must not have.
 
 **Consequence.** The type system now distinguishes mutable records from append-only ones. Writing
 code that updates an audit event does not compile against a setter that does not exist.
+
+---
+
+## ADR-012 — Tenant isolation via Hibernate `@TenantId`, not `@Filter`
+
+**Decision.** Tenant-owned entities carry a `@TenantId` column. A
+`CurrentTenantIdentifierResolver` reads the scope from a `TenantContext` thread local, which a
+servlet filter populates from the authenticated principal.
+
+**Rejected.** A Hibernate `@FilterDef` / `@Filter` enabled per session by an aspect. It reads
+well and makes the platform-admin bypass trivial, but **a filter is silently ignored by
+`EntityManager.find()`** — so `repository.findById(otherTenantsId)` would return the row. That is
+the single most common way to read data by id, and the failure is invisible: no error, no log,
+just another tenant's data.
+
+This was verified rather than assumed. `TenantIsolationIT.findByIdDoesNotLeakAcrossTenants`
+exercises exactly that path and passes under `@TenantId`; it would fail under a filter.
+
+**Consequence.** Platform admins get unrestricted reads through `isRoot()`, which Hibernate 7
+honours by skipping the discriminator entirely — verified by
+`TenantIsolationIT.rootScopeSeesAllTenants`. Root is therefore the one dangerous value in the
+system, so it is a single exact-match sentinel granted in exactly one place, and the default for
+any thread that has not established a scope is "sees nothing" rather than "sees everything".
+
+---
+
+## ADR-013 — Tenant scope must be established before the transaction opens
+
+**Decision.** The tenant scope is set at the edge — the servlet filter for requests, and
+explicitly by the dispatcher for background work — always before any transaction begins.
+
+**Why it is not merely a convention.** Hibernate binds the tenant identifier **when the session
+is opened**, not per statement. Changing `TenantContext` inside an open transaction has no effect
+on that transaction: every statement keeps using the scope that was in force when the session
+started.
+
+This was discovered by a failing test rather than by reading documentation. The first version of
+`TenantIsolationIT` was `@Transactional`, so one session opened while unscoped and every insert
+silently used the "no tenant" sentinel, failing against the tenant foreign key. The test was the
+thing that revealed the constraint.
+
+**Consequence.** Two rules follow, and both are recorded as invariants in `CLAUDE.md`:
+
+1. A service method must never try to change tenant scope for work already inside a transaction.
+2. The dispatcher must set the scope for a work item *before* opening the transaction that
+   processes it — not inside it. This directly shapes the dispatch loop built in a later phase.
