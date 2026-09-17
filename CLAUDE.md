@@ -57,6 +57,28 @@ These are load-bearing. Do not change them without updating `docs/02-decision-lo
    accompanying audit event is a bug.
 7. **Delivery is at-least-once.** Do not claim exactly-once anywhere in code, comments, or docs.
 
+## Package layout
+
+Feature-oriented, not layer-oriented — an entity, its repository, its service and its controller
+sit together, so a change to one concern touches one package.
+
+```
+com.notifly.notification
+├── common/model/   BaseEntity, TenantOwnedEntity, Channel
+├── tenant/         Tenant, TenantStatus
+├── user/           User, UserRole, UserStatus
+├── channel/        TenantChannelConfig
+├── template/       Template, TemplateVersion, TemplateChannelBody, TemplateVariable
+├── delivery/       NotificationRequest, Notification, DeliveryAttempt, status enums
+├── ratelimit/      RateLimitPolicy
+├── idempotency/    IdempotencyKey
+├── suppression/    Suppression, SuppressionReason
+└── audit/          AuditEvent, AuditEventType, ActorKind
+```
+
+The feature package is `delivery/`, not `notification/`, to avoid the unreadable
+`com.notifly.notification.notification`.
+
 ## Conventions
 
 - REST paths are versioned: `/api/v1/...`

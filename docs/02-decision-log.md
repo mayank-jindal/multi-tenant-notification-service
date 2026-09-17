@@ -116,3 +116,50 @@ actually interesting part — impossible to demonstrate deterministically.
 
 **Consequence.** The retry, backoff, and dead-letter paths are exercised on demand by turning a
 configuration knob, and the SPI boundary is where a real provider would drop in unchanged.
+
+---
+
+## ADR-009 — Raw UUID foreign keys instead of JPA associations
+
+**Decision.** Entities reference each other by `UUID` columns (`templateId`, `requestId`,
+`notificationId`) rather than `@ManyToOne` / `@OneToMany` associations. Joins happen explicitly in
+queries when a query needs them.
+
+**Rejected.** A fully mapped object graph. It reads more naturally for CRUD, but the dispatcher
+reads notifications in tight batched loops, and a lazy association traversed inside one of those
+loops turns a single query into thousands. That failure mode is invisible in a unit test and
+catastrophic under the load this service is specifically supposed to handle.
+
+**Consequence.** Loading a related entity is a deliberate repository call rather than a field
+access, so the cost is always visible at the call site. Since controllers map to DTOs and never
+serialise entities, the object graph was never needed for responses anyway.
+
+---
+
+## ADR-010 — The state machine lives on the enum, not in the services
+
+**Decision.** `NotificationStatus.canTransitionTo` declares every legal transition, and
+`Notification.transitionTo` is the only way to change status. An illegal transition throws
+`IllegalStateException` rather than being rejected as user input.
+
+**Rejected.** Letting each service set the status it needs. With a dispatcher, a scheduler, a
+lease reaper and a tenant-facing cancel endpoint all mutating the same column, "which transitions
+are legal" would have been spread across four places and would have drifted.
+
+**Consequence.** An illegal transition is a bug in our code, not bad input from a caller, and is
+surfaced as a 500 rather than a 400 — deliberately, because it should never reach production and
+must be loud when it does.
+
+---
+
+## ADR-011 — Append-only tables do not extend the mutable entity base
+
+**Decision.** `delivery_attempts` and `audit_events` carry no `updated_at` or `version` column and
+do not extend `BaseEntity`.
+
+**Rejected.** A single base class for everything. Uniformity would have added an update timestamp
+and an optimistic-lock version to tables that are never updated, implying a mutability that the
+audit trail specifically must not have.
+
+**Consequence.** The type system now distinguishes mutable records from append-only ones. Writing
+code that updates an audit event does not compile against a setter that does not exist.
