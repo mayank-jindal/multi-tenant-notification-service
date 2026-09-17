@@ -1,5 +1,7 @@
 package com.notifly.notification.tenant;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
@@ -12,6 +14,8 @@ public interface TenantRepository extends JpaRepository<Tenant, UUID> {
     Optional<Tenant> findBySlug(String slug);
 
     boolean existsBySlug(String slug);
+
+    Page<Tenant> findAllByStatus(TenantStatus status, Pageable pageable);
 
     /**
      * Tenants eligible to have work dispatched. Suspended tenants are excluded here rather than

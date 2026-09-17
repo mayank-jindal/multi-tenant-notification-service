@@ -264,3 +264,54 @@ is public until someone remembers to protect it, and nothing fails to remind the
 `AuthenticationIT.unknownPathsRequireAuthentication` asserts precisely because it is the
 observable proof that the default is deny. A side effect is that unauthenticated callers cannot
 probe which endpoints exist.
+
+---
+
+## ADR-017 — Authorization is declared on services, not controllers
+
+**Decision.** `@PreAuthorize` sits on the service class or method. Controllers map HTTP to calls
+and contain no rules.
+
+**Rejected.** Annotating controllers, which is more visible when reading a URL map. It only
+protects the HTTP path: a scheduled job, an event listener, or another service calling the same
+method reaches it with no check at all. Putting the rule on the service means it holds however
+the method is reached.
+
+**Consequence.** Reading a controller does not tell you who may call it — the annotation is one
+level down. `PlatformAdminIT.RoleBoundary` therefore asserts the boundary explicitly for every
+platform endpoint rather than leaving it to inspection.
+
+---
+
+## ADR-018 — Tenants are suspended, never deleted
+
+**Decision.** There is no tenant delete endpoint. The lifecycle is ACTIVE ↔ SUSPENDED.
+
+**Rejected.** A delete that cascades. The schema would happily do it, and that is the problem:
+tenant data is referenced by an append-only audit trail and by delivery history. Cascading a
+delete would erase the record of what the tenant did, which is precisely the evidence a deletion
+is most likely to be investigated against.
+
+**Consequence.** Suspension holds queued work rather than cancelling it. Suspension is usually
+temporary — a billing problem, an investigation — and destroying a backlog that cannot be
+reconstructed would turn a reversible action into an irreversible one. Reactivation resumes the
+backlog.
+
+---
+
+## ADR-019 — Rate limits resolve most-specific-first across two dimensions
+
+**Decision.** A policy is keyed by (tenant or platform) × (channel or all channels). Resolution
+takes the most specific enabled match, computed from a single query returning all four candidates.
+
+**Rejected.** A flat per-tenant limit. It forces every tenant to be configured explicitly before
+any limit applies, so the default state of a new tenant is unlimited — the wrong direction for a
+protection mechanism.
+
+**Consequence.** A platform admin sets one floor for everyone and overrides per tenant or per
+channel. The API reports a tenant's *effective* limits including inherited defaults, because
+listing only its own rows would make an inherited limit look like no limit.
+
+A configuration guard rejects `capacity < refillTokens`: the bucket could never hold one period's
+worth of tokens, so the configured rate would be silently unreachable and the real limit would be
+the capacity instead. That is a typo, not an intention.
