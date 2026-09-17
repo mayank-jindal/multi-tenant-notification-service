@@ -6,11 +6,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.core.Ordered;
-import org.springframework.core.annotation.Order;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
@@ -25,9 +22,12 @@ import java.io.IOException;
  *
  * <p>A platform administrator is given root scope, which disables discriminator filtering. That
  * is the only path by which unrestricted access is ever granted.
+ *
+ * <p>Registered inside the security filter chain by {@code SecurityConfig} rather than as a
+ * {@code @Component}. Auto-registering it as a servlet filter would leave its position relative
+ * to authentication up to bean ordering, and it must run after authentication or it would find no
+ * principal to derive a scope from.
  */
-@Component
-@Order(Ordered.LOWEST_PRECEDENCE - 100)
 public class TenantContextFilter extends OncePerRequestFilter {
 
     private static final Logger log = LoggerFactory.getLogger(TenantContextFilter.class);

@@ -209,3 +209,58 @@ thing that revealed the constraint.
 1. A service method must never try to change tenant scope for work already inside a transaction.
 2. The dispatcher must set the scope for a work item *before* opening the transaction that
    processes it — not inside it. This directly shapes the dispatch loop built in a later phase.
+
+---
+
+## ADR-014 — Login failures are deliberately indistinguishable
+
+**Decision.** An unknown email address and a wrong password return byte-identical responses. When
+no user is found, a BCrypt comparison is still performed against a dummy hash before returning.
+
+**Rejected.** Distinguishing the two, which is friendlier and is what most tutorials do. It also
+turns the login endpoint into an account enumeration oracle: anyone can discover which addresses
+are registered by reading the error code, and a legitimate user gains nothing from knowing which
+half of their credentials was wrong.
+
+The dummy comparison exists because response *timing* leaks the same information. Returning early
+for an unknown address makes that request measurably faster than one for a known address with the
+wrong password, so the identical body would be undermined by the clock.
+
+**Consequence.** `AuthenticationIT.failuresDoNotRevealWhetherAnAccountExists` asserts the two
+bodies are equal rather than merely both being 401 — a weaker assertion would pass even if a
+future change started distinguishing them.
+
+---
+
+## ADR-015 — Audit writes run in their own transaction and never fail the caller
+
+**Decision.** `AuditService` methods use `REQUIRES_NEW`, and a failed audit write is logged at
+ERROR but swallowed rather than propagated.
+
+**Why a separate transaction.** The trail must record *rejected* actions — failed logins, refused
+sends, rate-limited submissions. Those happen in transactions that roll back. Joining the
+caller's transaction would roll the evidence back with the action, producing a trail that records
+only successes and silently omits everything worth investigating.
+
+**Why failures are swallowed.** A broken audit write must not convert a successful business
+operation into a failed one. The alternative trades a working system for a perfectly recorded
+broken one.
+
+**Consequence.** The trail is not transactionally atomic with the work it describes. Under
+database failure it can in principle miss an entry — which is why the failure is logged loudly
+rather than ignored.
+
+---
+
+## ADR-016 — Authorization defaults to deny
+
+**Decision.** The security chain ends in `anyRequest().authenticated()`; public paths are an
+explicit, short allow-list.
+
+**Rejected.** Enumerating the protected paths. Under that arrangement every endpoint added later
+is public until someone remembers to protect it, and nothing fails to remind them.
+
+**Consequence.** An unknown path returns 401 rather than 404, which
+`AuthenticationIT.unknownPathsRequireAuthentication` asserts precisely because it is the
+observable proof that the default is deny. A side effect is that unauthenticated callers cannot
+probe which endpoints exist.

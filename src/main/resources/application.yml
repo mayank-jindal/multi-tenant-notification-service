@@ -45,6 +45,25 @@ server:
     whitelabel:
       enabled: false
 
+# ---------------------------------------------------------------------------------------------
+# Application settings. Every value is overridable by environment variable so that nothing
+# sensitive has to be edited into this file to run the service somewhere real.
+# ---------------------------------------------------------------------------------------------
+notifly:
+  security:
+    jwt:
+      # Development key. JwtService refuses to start with this value under a prod-like profile,
+      # so the insecure default cannot ship unnoticed. HS256 needs at least 32 bytes.
+      secret: ${JWT_SECRET:dev-only-insecure-signing-key-change-me-in-production-0123456789}
+      access-token-ttl: ${JWT_TTL:1h}
+      issuer: notifly
+
+  bootstrap:
+    # Created once, only when no platform administrator exists yet.
+    admin-email: ${ADMIN_EMAIL:admin@notifly.io}
+    admin-password: ${ADMIN_PASSWORD:admin123}
+    admin-display-name: ${ADMIN_NAME:Platform Administrator}
+
 springdoc:
   swagger-ui:
     path: /swagger-ui.html
