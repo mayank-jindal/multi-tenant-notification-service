@@ -37,6 +37,14 @@ public class TenantChannelConfig extends TenantOwnedEntity {
     @Column(name = "credentials_cipher", columnDefinition = "text")
     private String credentialsCipher;
 
+    /**
+     * Masked tail of the stored credential, for display only. Exists because the plaintext is
+     * never returned over the API, which would otherwise leave a tenant admin unable to tell
+     * which key is configured.
+     */
+    @Column(name = "credentials_hint", length = 64)
+    private String credentialsHint;
+
     @Column(name = "provider_code", nullable = false, length = 64)
     private String providerCode = "SIMULATOR";
 
@@ -82,6 +90,18 @@ public class TenantChannelConfig extends TenantOwnedEntity {
 
     public void setCredentialsCipher(String credentialsCipher) {
         this.credentialsCipher = credentialsCipher;
+    }
+
+    public String getCredentialsHint() {
+        return credentialsHint;
+    }
+
+    public void setCredentialsHint(String credentialsHint) {
+        this.credentialsHint = credentialsHint;
+    }
+
+    public boolean hasCredentials() {
+        return credentialsCipher != null && !credentialsCipher.isBlank();
     }
 
     public String getProviderCode() {

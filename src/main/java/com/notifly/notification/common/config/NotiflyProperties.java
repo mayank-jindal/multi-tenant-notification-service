@@ -25,9 +25,25 @@ public record NotiflyProperties(
         @Valid @NotNull Bootstrap bootstrap) {
 
     /**
-     * @param jwt token issuing and verification settings
+     * @param jwt        token issuing and verification settings
+     * @param encryption at-rest encryption of stored provider credentials
      */
-    public record Security(@Valid @NotNull Jwt jwt) {
+    public record Security(
+            @Valid @NotNull Jwt jwt,
+            @Valid @NotNull Encryption encryption) {
+    }
+
+    /**
+     * @param key passphrase for AES-256-GCM encryption of provider credentials
+     */
+    public record Encryption(@NotBlank String key) {
+
+        /** Marks the checked-in development key, which must never be used outside development. */
+        public static final String DEV_KEY_PREFIX = "dev-only-";
+
+        public boolean isDevelopmentKey() {
+            return key.startsWith(DEV_KEY_PREFIX);
+        }
     }
 
     /**

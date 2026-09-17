@@ -85,3 +85,40 @@ still target Boot 3:
 |--------|--------|
 | **Jackson 3** (`tools.jackson.*`) replaces Jackson 2 | `spring.jackson.serialization.write-dates-as-timestamps` no longer exists — `WRITE_DATES_AS_TIMESTAMPS` moved off `SerializationFeature`. Jackson 3 already defaults to ISO-8601 for `java.time`, so the property was simply removed. |
 | **Autoconfiguration split into per-technology modules** | `org.flywaydb:flyway-core` on its own is inert. `org.springframework.boot:spring-boot-flyway` must be added for Flyway to run at startup. Flyway migrations silently did not execute until this was added — the application started perfectly with an empty database. |
+
+## 4. GitHub push protection rejected a test fixture
+
+**Symptom.** A push was refused:
+
+```
+remote: - GITHUB PUSH PROTECTION
+remote:     - Push cannot contain secrets
+remote:       —— Stripe API Key ——
+```
+
+**Cause.** A unit test used Stripe's published documentation key as a realistic-looking
+credential. It is not a live secret, but it matches Stripe's `sk_live_` key format exactly, which
+is what the scanner detects. The literal value is deliberately not reproduced here — quoting it
+in this file is what caused the *second* rejected push.
+
+**Fix.** Replaced the fixture with `dummy-provider-credential-ABCD`, which cannot be mistaken for
+any provider's key format. GitHub offers an "allow this secret" link; it was not used. Suppressing
+a detector so a test can keep using a realistic key teaches the repository to ignore exactly the
+signal it exists to produce — and the fixture's realism was buying nothing.
+
+## 5. A flaky test caused by base64 canonicalisation
+
+**Symptom.** `AuthenticationIT.tamperedTokenIsRejected` passed repeatedly, then failed once with
+the tampered token being accepted as valid.
+
+**Cause.** The test tampered with a JWT by flipping the **final** character of the signature. An
+HS256 signature is 32 bytes, encoded as 43 base64url characters: the first 42 carry 252 bits and
+the last carries only the remaining 4. Several distinct final characters therefore decode to the
+same 32 bytes, so the "tampered" signature was sometimes byte-identical to the real one and the
+token was legitimately valid.
+
+**Fix.** Tamper with a character in the middle of the payload segment instead, which always
+changes the signed content. Verified deterministic across repeated runs.
+
+**Worth noting** because the failure looked like a security bug in token verification and was in
+fact a bug in the test. The verification code was correct throughout.

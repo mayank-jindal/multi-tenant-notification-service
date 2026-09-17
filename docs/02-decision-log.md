@@ -315,3 +315,49 @@ listing only its own rows would make an inherited limit look like no limit.
 A configuration guard rejects `capacity < refillTokens`: the bucket could never hold one period's
 worth of tokens, so the configured rate would be silently unreachable and the real limit would be
 the capacity instead. That is a typo, not an intention.
+
+---
+
+## ADR-020 — Provider credentials are write-only
+
+**Decision.** Credentials are encrypted with AES-256-GCM before storage and are never returned by
+any endpoint. Responses carry `credentialsSet` and a masked `credentialsHint` (last four
+characters) instead. The plaintext is produced in exactly one place — the dispatch path, when a
+provider is actually called.
+
+**Rejected.** A read-back endpoint for the owning tenant admin. It is more convenient for
+recovery, and it turns every tenant-admin token into a credential exfiltration tool while putting
+plaintext secrets into HTTP responses, proxy logs and browser history. Stripe, Twilio and AWS all
+refuse to show a secret twice, for this reason.
+
+**Consequence.** A tenant admin who loses a credential re-enters it rather than recovering it.
+The audit trail records only that a credential was `replaced` — writing the value, or even its
+length, into an append-only table that many people can read would defeat the encryption.
+
+**Why GCM and not CBC.** GCM is authenticated: tampering with stored ciphertext produces a
+decryption failure rather than silently different plaintext. Silently altered plaintext would be
+sent to a provider as though genuine. A fresh random 12-byte IV is generated per encryption and
+prepended to the ciphertext — IV reuse under GCM is catastrophic rather than merely weak, and
+`CredentialCipherTest.encryptionIsNonDeterministic` asserts fifty encryptions of the same value
+produce fifty distinct ciphertexts. Without that, identical credentials across tenants would
+produce identical ciphertext, and anyone with table access could tell which tenants share a key
+without decrypting anything.
+
+---
+
+## ADR-021 — Published template versions are immutable
+
+**Decision.** A version is editable only while it is a `DRAFT`. Publishing archives whichever
+version was published before, and a unique partial index permits at most one published version
+per template. Editing a published version returns 409.
+
+**Rejected.** Editing templates in place, which is what most template systems do. It means a
+correction to a typo silently rewrites what already-queued notifications will say, and makes a
+delivery record from six months ago unexplainable — the text that was sent no longer exists
+anywhere.
+
+**Consequence.** Fixing a typo requires creating and publishing a new version, which is more
+ceremony than editing a field. In exchange, `notification.template_version_id` always resolves to
+the exact content that was rendered, and the publish swap is atomic: the old version is archived
+and flushed before the new one is published, because the unique index would otherwise reject the
+second row.

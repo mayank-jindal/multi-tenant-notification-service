@@ -58,6 +58,12 @@ notifly:
       access-token-ttl: ${JWT_TTL:1h}
       issuer: notifly
 
+    encryption:
+      # Encrypts tenant provider credentials at rest. CredentialCipher refuses to start with
+      # this value under a prod-like profile. Changing it makes existing credentials
+      # undecryptable, so rotate it only with a re-encryption plan.
+      key: ${ENCRYPTION_KEY:dev-only-insecure-credential-encryption-key-change-me}
+
   bootstrap:
     # Created once, only when no platform administrator exists yet.
     admin-email: ${ADMIN_EMAIL:admin@notifly.io}

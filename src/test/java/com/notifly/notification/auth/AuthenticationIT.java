@@ -161,9 +161,16 @@ class AuthenticationIT extends AbstractIntegrationTest {
     @DisplayName("a tampered token is rejected as invalid, not merely unauthenticated")
     void tamperedTokenIsRejected() throws Exception {
         String token = tokenFor(ADMIN_EMAIL, ADMIN_PASSWORD);
-        // Flip the final character of the signature; the payload still parses, the signature fails.
-        String tampered = token.substring(0, token.length() - 1)
-                + (token.endsWith("A") ? "B" : "A");
+
+        // Alter a character in the middle of the payload segment. Tampering with the final
+        // character of the signature would be unreliable: an HS256 signature is 43 base64url
+        // characters in which the last one carries only four significant bits, so changing it can
+        // decode to the same 32 bytes and leave the token genuinely valid.
+        String[] parts = token.split("\\.");
+        char[] payload = parts[1].toCharArray();
+        int middle = payload.length / 2;
+        payload[middle] = payload[middle] == 'a' ? 'b' : 'a';
+        String tampered = parts[0] + "." + new String(payload) + "." + parts[2];
 
         mockMvc.perform(get("/api/v1/auth/me").header("Authorization", "Bearer " + tampered))
                 .andExpect(status().isUnauthorized())
