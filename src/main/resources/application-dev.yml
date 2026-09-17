@@ -1,0 +1,11 @@
+# Development profile: verbose enough to watch the dispatch pipeline work.
+logging:
+  level:
+    com.notifly.notification: DEBUG
+    org.hibernate.SQL: DEBUG
+
+spring:
+  jpa:
+    properties:
+      hibernate:
+        format_sql: true

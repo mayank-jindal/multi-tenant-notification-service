@@ -1,0 +1,28 @@
+# Local development dependency only.
+#
+# This file starts PostgreSQL so the service has a database to run against — it is the
+# equivalent of installing Postgres natively. The application itself is NOT containerized,
+# and this repository contains no deployment artifacts (no Dockerfile, no CI, no manifests).
+# See docs/01-clarifying-questions-and-answers.md.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: notifly-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: notifications
+      POSTGRES_USER: notify
+      POSTGRES_PASSWORD: notify
+    ports:
+      - "5432:5432"
+    volumes:
+      - notifly-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U notify -d notifications"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  notifly-pgdata:

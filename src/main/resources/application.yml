@@ -1,0 +1,58 @@
+spring:
+  application:
+    name: multi-tenant-notification-service
+
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/notifications}
+    username: ${DB_USERNAME:notify}
+    password: ${DB_PASSWORD:notify}
+    hikari:
+      # The dispatch worker pools plus the request threads both draw from this pool, so it is
+      # sized deliberately rather than left at the default.
+      maximum-pool-size: ${DB_POOL_SIZE:20}
+      minimum-idle: 5
+      connection-timeout: 10000
+      pool-name: notifly-cp
+
+  jpa:
+    # Schema ownership belongs to Flyway. Hibernate only verifies that the mapping matches.
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        jdbc:
+          batch_size: 50
+          time_zone: UTC
+        order_inserts: true
+        order_updates: true
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: false
+
+  jackson:
+    default-property-inclusion: non_null
+    # Jackson 3 (shipped with Boot 4) already renders java.time values as ISO-8601 strings by
+    # default, so no explicit date handling is configured here. All timestamps are UTC.
+
+server:
+  port: ${SERVER_PORT:8080}
+  error:
+    # Errors are rendered centrally as RFC 7807 problem documents; the servlet container's
+    # default whitelabel body must never leak through.
+    whitelabel:
+      enabled: false
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
+    tags-sorter: alpha
+  api-docs:
+    path: /v3/api-docs
+
+logging:
+  level:
+    com.notifly.notification: ${LOG_LEVEL:INFO}
