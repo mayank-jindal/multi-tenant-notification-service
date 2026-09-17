@@ -112,6 +112,19 @@ The feature package is `delivery/`, not `notification/`, to avoid the unreadable
   scheduling) get integration tests against a real Postgres via Testcontainers.
 - Async assertions use Awaitility, never `Thread.sleep`.
 
+## Scope boundary
+
+The remaining work is deliberately scoped to a deadline. See `docs/05-scope-decisions.md` for the
+full list and reasoning. Do not add these without being asked:
+
+- in-app inbox read API
+- dead-letter replay endpoint
+- template preview endpoint
+- Postman collection
+- cross-tenant delivery search
+- percentile or trend reporting (counts by status and channel only)
+- outbound delivery-status webhooks
+
 ## Out of scope — do not build these
 
 UI/frontend, deployment, containerization of the app itself, CI/CD, microservices, message
