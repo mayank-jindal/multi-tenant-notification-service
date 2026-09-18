@@ -679,6 +679,7 @@ Stated plainly rather than left for a reader to find.
 
 | Document | Contents |
 |---|---|
+| [`docs/06-walkthrough.md`](docs/06-walkthrough.md) | **Start here** — the whole system explained in plain language |
 | [`docs/00-original-requirement.md`](docs/00-original-requirement.md) | The brief, verbatim |
 | [`docs/01-clarifying-questions-and-answers.md`](docs/01-clarifying-questions-and-answers.md) | Every scoping question raised before implementation, and its answer |
 | [`docs/02-decision-log.md`](docs/02-decision-log.md) | 23 architecture decisions, each naming what was rejected and what it costs |
