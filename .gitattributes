@@ -1,0 +1,26 @@
+# Normalise line endings.
+#
+# Several files were written by tooling on Windows and picked up CRLF, leaving the repository
+# with mixed endings. That makes diffs noisy — a one-line change shows as a whole-file rewrite —
+# and is confusing for anyone cloning on Linux or macOS.
+#
+# Everything text is stored LF in the repository. Git converts on checkout where a platform
+# needs it.
+
+* text=auto eol=lf
+
+*.java   text eol=lf
+*.xml    text eol=lf
+*.yml    text eol=lf
+*.yaml   text eol=lf
+*.sql    text eol=lf
+*.md     text eol=lf
+*.html   text eol=lf
+*.css    text eol=lf
+*.js     text eol=lf
+*.sh     text eol=lf
+Dockerfile text eol=lf
+
+*.jar    binary
+*.png    binary
+*.jpg    binary
