@@ -59,3 +59,32 @@ The requirement was deliberately open-ended, so the process front-loaded decisio
 | `01-clarifying-questions-and-answers.md` | Every question asked and the answer given |
 | `02-decision-log.md` | Architecture decision records with rejected alternatives |
 | `03-development-process.md` | This file |
+
+
+## Outcome
+
+Final state of the submission:
+
+| Measure | Value |
+|---|---|
+| Flyway migrations | 7 |
+| Database tables | 14 |
+| Indexes | 50 (4 partial, covering the dispatcher's hot paths) |
+| Check constraints | 140 |
+| REST endpoints | 39 |
+| Tests | 123 — 46 unit, 77 integration |
+| Architecture decision records | 23 |
+
+## Defects found by testing
+
+Recorded because they are the clearest evidence that the tests do real work rather than
+restating the implementation. None of these were visible by reading the code.
+
+| Defect | How it would have manifested |
+|---|---|
+| The configured retry budget was never applied | `notifly.dispatch.retry.max-attempts` silently had no effect; every notification used a hardcoded default of five attempts |
+| Duplicate-send race between lease expiry and re-claiming | A task queued behind a saturated pool could outlive its lease, be reclaimed, and then send a message the new owner was also sending |
+| `EnumMap` copy constructor throws on an empty map | Omitting the `workers` configuration block would have crashed startup |
+| `@Transactional` bypassed by self-invocation | Dispatch would have run without a transaction; caught before it shipped |
+| Flyway autoconfiguration missing under Spring Boot 4 | Migrations silently never ran, and the application started happily against an empty database |
+| Flaky JWT tampering test | An HS256 signature's final base64url character carries four significant bits, so flipping it sometimes decoded to the same bytes and the token stayed valid |
