@@ -37,6 +37,8 @@ public interface NotificationRepository
 
     long countByTenantIdAndStatus(UUID tenantId, NotificationStatus status);
 
+    long countByTenantIdAndChannel(UUID tenantId, Channel channel);
+
     /**
      * Scheduled notifications whose time has come. Returned in schedule order so a backlog is
      * promoted oldest-first rather than arbitrarily.

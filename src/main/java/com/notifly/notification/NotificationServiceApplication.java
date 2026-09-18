@@ -1,5 +1,6 @@
 package com.notifly.notification;
 
+import com.notifly.notification.common.config.DispatchProperties;
 import com.notifly.notification.common.config.NotiflyProperties;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -15,7 +16,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
  */
 @SpringBootApplication
 @EnableScheduling
-@EnableConfigurationProperties(NotiflyProperties.class)
+@EnableConfigurationProperties({NotiflyProperties.class, DispatchProperties.class})
 public class NotificationServiceApplication {
 
     public static void main(String[] args) {

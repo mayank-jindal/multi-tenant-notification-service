@@ -70,6 +70,42 @@ notifly:
     admin-password: ${ADMIN_PASSWORD:admin123}
     admin-display-name: ${ADMIN_NAME:Platform Administrator}
 
+  dispatch:
+    # The pollers that drive delivery. Disabled in tests that drive dispatch by hand.
+    enabled: ${DISPATCH_ENABLED:true}
+    poll-interval-ms: ${DISPATCH_POLL_MS:500}
+    # How many notifications one claim cycle takes per channel.
+    batch-size: 50
+    # How long a claimed notification stays leased. A worker that dies leaves an expired lease
+    # that the reaper returns to the queue; too short and a slow provider looks like a crash.
+    lease-seconds: 60
+    # Ceiling on one tenant's concurrent sends per channel, so no tenant can occupy the pool.
+    max-in-flight-per-tenant: 20
+    # Bounded queue in front of each pool. Full queue means work stays in the database.
+    queue-capacity: 500
+
+    workers:
+      EMAIL: 8
+      SMS: 4
+      PUSH: 8
+      IN_APP: 4
+
+    retry:
+      max-attempts: 5
+      initial-backoff-seconds: 2
+      max-backoff-seconds: 300
+      multiplier: 2.0
+      # Randomises each delay by +/- 20%, so notifications that failed during one outage do not
+      # all return at the same instant when the provider recovers.
+      jitter-factor: 0.2
+
+    simulator:
+      # Raise the failure rates to watch retries and backoff work.
+      EMAIL: { min-latency-ms: 5, max-latency-ms: 25, transient-failure-rate: 0.0, permanent-failure-rate: 0.0 }
+      SMS: { min-latency-ms: 5, max-latency-ms: 20, transient-failure-rate: 0.0, permanent-failure-rate: 0.0 }
+      PUSH: { min-latency-ms: 2, max-latency-ms: 15, transient-failure-rate: 0.0, permanent-failure-rate: 0.0 }
+      IN_APP: { min-latency-ms: 0, max-latency-ms: 2, transient-failure-rate: 0.0, permanent-failure-rate: 0.0 }
+
 springdoc:
   swagger-ui:
     path: /swagger-ui.html
