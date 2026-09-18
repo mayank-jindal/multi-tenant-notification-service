@@ -1,0 +1,43 @@
+# Production profile.
+#
+# Under this profile the service refuses to start with the checked-in development JWT and
+# encryption keys — see JwtService and CredentialCipher. That is deliberate: a default secret
+# reaching production is one of the most common ways a service like this is compromised, and
+# startup is the only reliable moment to catch it.
+
+spring:
+  datasource:
+    hikari:
+      # Small instances have small connection allowances. Twenty connections would exhaust a
+      # free-tier database before the application even became busy.
+      maximum-pool-size: ${DB_POOL_SIZE:5}
+      minimum-idle: 1
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+
+  flyway:
+    enabled: true
+
+server:
+  # Behind Render's proxy, so the app must trust forwarded headers to build correct URLs.
+  forward-headers-strategy: framework
+  shutdown: graceful
+
+# Pools sized for a 512MB instance rather than a development machine.
+notifly:
+  dispatch:
+    workers:
+      EMAIL: 4
+      SMS: 2
+      PUSH: 4
+      IN_APP: 2
+    queue-capacity: 200
+
+logging:
+  level:
+    root: INFO
+    com.notifly.notification: INFO
+    org.hibernate.SQL: WARN

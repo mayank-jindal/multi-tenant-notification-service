@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notifly — Multi-Tenant Notification Service</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📨</text></svg>">
+</head>
+<body>
+
+<!-- ======================================================== login -->
+<div id="login-screen" class="login-screen">
+    <div class="login-card">
+        <div class="brand">
+            <span class="brand-mark">📨</span>
+            <h1>Notifly</h1>
+        </div>
+        <p class="brand-sub">Multi-tenant notification delivery</p>
+
+        <form id="login-form" autocomplete="on">
+            <label for="login-email">Email</label>
+            <input type="email" id="login-email" required autocomplete="username"
+                   placeholder="admin@notifly.io">
+
+            <label for="login-password">Password</label>
+            <input type="password" id="login-password" required autocomplete="current-password"
+                   placeholder="••••••••">
+
+            <button type="submit" class="btn btn-primary btn-block" id="login-btn">Sign in</button>
+        </form>
+
+        <div id="login-error" class="alert alert-error" hidden></div>
+
+        <details class="demo-hint">
+            <summary>Demo credentials</summary>
+            <p>Platform administrator: <code>admin@notifly.io</code> / <code>admin123</code></p>
+            <p class="muted">A platform admin creates tenants. Sign in as a tenant admin to send
+                notifications.</p>
+        </details>
+    </div>
+</div>
+
+<!-- ======================================================== app -->
+<div id="app" hidden>
+    <header class="topbar">
+        <div class="topbar-left">
+            <span class="brand-mark">📨</span>
+            <strong>Notifly</strong>
+        </div>
+        <div class="topbar-right">
+            <span id="user-badge" class="badge"></span>
+            <span id="user-email" class="muted"></span>
+            <button id="logout-btn" class="btn btn-ghost btn-sm">Sign out</button>
+        </div>
+    </header>
+
+    <nav class="tabs" id="tabs"></nav>
+
+    <main id="main">
+
+        <!-- ------------------------------------------------ tenants (platform admin) -->
+        <section class="panel" data-panel="tenants" hidden>
+            <div class="panel-head">
+                <h2>Tenants</h2>
+                <button class="btn btn-primary btn-sm" id="new-tenant-btn">New tenant</button>
+            </div>
+
+            <form id="tenant-form" class="card form-grid" hidden>
+                <h3>Create a tenant</h3>
+                <div class="row">
+                    <div>
+                        <label for="tenant-slug">Slug</label>
+                        <input id="tenant-slug" placeholder="acme" required>
+                        <small class="muted">Lowercase letters, digits and hyphens. Cannot be changed later.</small>
+                    </div>
+                    <div>
+                        <label for="tenant-name">Name</label>
+                        <input id="tenant-name" placeholder="Acme Corporation" required>
+                    </div>
+                </div>
+                <div class="row">
+                    <div>
+                        <label for="tenant-weight">Dispatch weight</label>
+                        <input id="tenant-weight" type="number" min="1" max="100" value="1">
+                        <small class="muted">Higher weights earn a larger share of capacity when tenants compete.</small>
+                    </div>
+                    <div>
+                        <label for="tenant-admin-email">Administrator email</label>
+                        <input id="tenant-admin-email" type="email" placeholder="ops@acme.test" required>
+                    </div>
+                </div>
+                <div class="row">
+                    <div>
+                        <label for="tenant-admin-password">Administrator password</label>
+                        <input id="tenant-admin-password" type="password" value="acme-password-123" required>
+                        <small class="muted">At least 8 characters.</small>
+                    </div>
+                    <div class="actions-bottom">
+                        <button type="submit" class="btn btn-primary">Create tenant</button>
+                        <button type="button" class="btn btn-ghost" data-cancel="tenant-form">Cancel</button>
+                    </div>
+                </div>
+            </form>
+
+            <div id="tenants-list" class="card-list"></div>
+        </section>
+
+        <!-- ------------------------------------------------ channels -->
+        <section class="panel" data-panel="channels" hidden>
+            <div class="panel-head">
+                <h2>Channels</h2>
+                <p class="muted">A channel must be configured and enabled before it can be sent on.</p>
+            </div>
+            <div id="channels-list" class="card-list"></div>
+        </section>
+
+        <!-- ------------------------------------------------ templates -->
+        <section class="panel" data-panel="templates" hidden>
+            <div class="panel-head">
+                <h2>Templates</h2>
+                <button class="btn btn-primary btn-sm" id="new-template-btn">New template</button>
+            </div>
+
+            <form id="template-form" class="card form-grid" hidden>
+                <h3>Create a template</h3>
+                <div class="row">
+                    <div>
+                        <label for="tpl-code">Code</label>
+                        <input id="tpl-code" placeholder="order-shipped" required>
+                        <small class="muted">Quoted when sending. Cannot be changed later.</small>
+                    </div>
+                    <div>
+                        <label for="tpl-name">Name</label>
+                        <input id="tpl-name" placeholder="Order shipped" required>
+                    </div>
+                </div>
+
+                <label for="tpl-vars">Variables</label>
+                <input id="tpl-vars" placeholder="customerName, orderId" required>
+                <small class="muted">Comma separated. Every variable used in the body must be declared,
+                    or publishing is refused.</small>
+
+                <label for="tpl-subject">Email subject</label>
+                <input id="tpl-subject" placeholder="Order {{orderId}} has shipped">
+
+                <label for="tpl-body">Message body</label>
+                <textarea id="tpl-body" rows="4"
+                          placeholder="Hi {{customerName}}, your order {{orderId}} is on its way."></textarea>
+                <small class="muted">Use <code>{{variableName}}</code> for substitution. Used for
+                    both email and SMS.</small>
+
+                <div class="actions-bottom">
+                    <label class="checkbox">
+                        <input type="checkbox" id="tpl-publish" checked>
+                        Publish immediately
+                    </label>
+                    <button type="submit" class="btn btn-primary">Create template</button>
+                    <button type="button" class="btn btn-ghost" data-cancel="template-form">Cancel</button>
+                </div>
+            </form>
+
+            <div id="templates-list" class="card-list"></div>
+        </section>
+
+        <!-- ------------------------------------------------ send -->
+        <section class="panel" data-panel="send" hidden>
+            <div class="panel-head">
+                <h2>Send a notification</h2>
+            </div>
+
+            <form id="send-form" class="card form-grid">
+                <div class="row">
+                    <div>
+                        <label for="send-template">Template</label>
+                        <select id="send-template" required></select>
+                    </div>
+                    <div>
+                        <label for="send-channels">Channels</label>
+                        <div id="send-channels" class="chips"></div>
+                    </div>
+                </div>
+
+                <label for="send-recipients">Recipients</label>
+                <textarea id="send-recipients" rows="3"
+                          placeholder="sam@example.com&#10;raj@example.com"></textarea>
+                <small class="muted">One per line. Email addresses for EMAIL, phone numbers for SMS.</small>
+
+                <div id="send-vars" class="vars-grid"></div>
+
+                <div class="row">
+                    <div>
+                        <label for="send-schedule">Schedule</label>
+                        <select id="send-schedule">
+                            <option value="">Send immediately</option>
+                            <option value="60">In 1 minute</option>
+                            <option value="3600">In 1 hour</option>
+                            <option value="86400">Tomorrow</option>
+                        </select>
+                    </div>
+                    <div class="actions-bottom">
+                        <button type="submit" class="btn btn-primary btn-lg">Send</button>
+                    </div>
+                </div>
+            </form>
+
+            <div id="send-result"></div>
+        </section>
+
+        <!-- ------------------------------------------------ delivery -->
+        <section class="panel" data-panel="delivery" hidden>
+            <div class="panel-head">
+                <h2>Delivery</h2>
+                <div class="head-actions">
+                    <span class="live-dot" id="live-dot"></span>
+                    <span class="muted" id="live-label">Live</span>
+                    <select id="delivery-filter" class="btn-sm">
+                        <option value="">All statuses</option>
+                        <option value="QUEUED">Queued</option>
+                        <option value="SCHEDULED">Scheduled</option>
+                        <option value="SENDING">Sending</option>
+                        <option value="SENT">Sent</option>
+                        <option value="DELIVERED">Delivered</option>
+                        <option value="RETRY_SCHEDULED">Retrying</option>
+                        <option value="FAILED">Failed</option>
+                        <option value="CANCELLED">Cancelled</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="summary-tiles" class="tiles"></div>
+
+            <div class="card table-card">
+                <table class="data-table">
+                    <thead>
+                    <tr>
+                        <th>Recipient</th>
+                        <th>Channel</th>
+                        <th>Status</th>
+                        <th>Attempts</th>
+                        <th>Created</th>
+                        <th></th>
+                    </tr>
+                    </thead>
+                    <tbody id="delivery-rows"></tbody>
+                </table>
+                <p id="delivery-empty" class="empty muted" hidden>
+                    Nothing sent yet. Use the Send tab.
+                </p>
+            </div>
+        </section>
+    </main>
+</div>
+
+<!-- ======================================================== attempt history -->
+<div id="drawer" class="drawer" hidden>
+    <div class="drawer-panel">
+        <div class="drawer-head">
+            <h3>Attempt history</h3>
+            <button class="btn btn-ghost btn-sm" id="drawer-close">Close</button>
+        </div>
+        <div id="drawer-body"></div>
+    </div>
+</div>
+
+<div id="toast" class="toast" hidden></div>
+
+<script src="app.js"></script>
+</body>
+</html>

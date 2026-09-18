@@ -1,0 +1,58 @@
+# Render blueprint. Creates the web service and its database together, so the deployment is
+# reproducible from the repository rather than from remembered dashboard clicks.
+#
+# Deployment is out of scope for the assignment itself; this exists so the project can be hosted
+# as a portfolio piece. It lives on the `deploy` branch, keeping `main` as submitted.
+
+services:
+  - type: web
+    name: notifly
+    runtime: docker
+    plan: free
+    region: singapore
+    branch: deploy
+    healthCheckPath: /api/v1/auth/login
+
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod
+
+      # Supplied by Render from the database below. Rendered as a JDBC URL because Render's
+      # native connection string is postgres:// and the JDBC driver will not accept it.
+      - key: DB_URL
+        fromDatabase:
+          name: notifly-db
+          property: connectionString
+      - key: DB_USERNAME
+        fromDatabase:
+          name: notifly-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: notifly-db
+          property: password
+
+      # Generated once by Render and then held constant. The service refuses to start with the
+      # development keys under the prod profile, so these must be real values.
+      - key: JWT_SECRET
+        generateValue: true
+      - key: ENCRYPTION_KEY
+        generateValue: true
+
+      # Change these in the Render dashboard after the first deploy.
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+
+      # The free instance has 512MB. The default pool of 20 connections is far more than it can
+      # use and more than the free database allows.
+      - key: DB_POOL_SIZE
+        value: 5
+
+databases:
+  - name: notifly-db
+    plan: free
+    region: singapore
+    databaseName: notifications
+    user: notify
