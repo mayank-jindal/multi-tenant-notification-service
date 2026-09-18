@@ -32,6 +32,26 @@ spring:
     locations: classpath:db/migration
     baseline-on-migrate: false
 
+  mail:
+    # Only used when notifly.providers.email.mode is SMTP. Left blank by default so the
+    # application starts with no mail account configured.
+    host: ${SMTP_HOST:smtp.gmail.com}
+    port: ${SMTP_PORT:587}
+    username: ${SMTP_USERNAME:}
+    password: ${SMTP_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+          # Without explicit timeouts a dead relay holds a worker thread until the OS gives up,
+          # which is minutes rather than seconds.
+          connectiontimeout: 5000
+          timeout: 5000
+          writetimeout: 5000
+
   jackson:
     default-property-inclusion: non_null
     # Jackson 3 (shipped with Boot 4) already renders java.time values as ISO-8601 strings by
@@ -69,6 +89,13 @@ notifly:
     admin-email: ${ADMIN_EMAIL:admin@notifly.io}
     admin-password: ${ADMIN_PASSWORD:admin123}
     admin-display-name: ${ADMIN_NAME:Platform Administrator}
+
+  providers:
+    email:
+      # SIMULATOR (default) or SMTP. SMTP additionally requires spring.mail.username and
+      # spring.mail.password; see docs/08-real-providers.md.
+      mode: ${EMAIL_PROVIDER:SIMULATOR}
+      from-name: ${EMAIL_FROM_NAME:Notifly}
 
   dispatch:
     # The pollers that drive delivery. Disabled in tests that drive dispatch by hand.

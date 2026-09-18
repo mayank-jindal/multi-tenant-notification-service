@@ -98,6 +98,13 @@
             <scope>runtime</scope>
         </dependency>
 
+        <!-- Real SMTP delivery for the EMAIL channel. The simulator remains the default; this
+             is used only when notifly.providers.email.mode is set to SMTP. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-mail</artifactId>
+        </dependency>
+
         <!-- API documentation -->
         <dependency>
             <groupId>org.springdoc</groupId>

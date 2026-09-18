@@ -76,7 +76,7 @@ mvn clean verify
 | **Multi-tenancy** | Every tenant-owned row carries a tenant discriminator applied by Hibernate. Tenancy comes from the JWT, never from a request header. |
 | **Templates** | Tenant-defined, with `{{variable}}` substitution and an immutable version history. Exactly one version is published at a time. |
 | **Sending** | One endpoint covers single, bulk and scheduled sends. Content is rendered and frozen at submission. |
-| **Channels** | EMAIL, SMS, PUSH, IN_APP, each configured per tenant with encrypted provider credentials. |
+| **Channels** | EMAIL, SMS, PUSH, IN_APP, each configured per tenant with encrypted provider credentials. EMAIL delivers over real SMTP when configured; IN_APP always delivers for real. |
 | **Rate limiting** | Token buckets per (tenant, channel), resolved most-specific-first from platform defaults. |
 | **Dispatch** | Database-backed queue, claimed with `FOR UPDATE SKIP LOCKED`, executed on bounded per-channel thread pools. |
 | **Fairness** | Weighted round-robin across tenants, so a large backlog cannot starve a small one. |
@@ -566,10 +566,10 @@ lease duration, per-tenant in-flight cap, retry policy, and simulator behaviour.
 ## Testing
 
 ```bash
-mvn clean verify     # 123 tests: 46 unit + 77 integration
+mvn clean verify     # 131 tests: 46 unit + 85 integration
 ```
 
-**123 tests, all passing** — 46 unit (Surefire) and 77 integration (Failsafe). Integration tests
+**131 tests, all passing** — 46 unit (Surefire) and 85 integration (Failsafe). Integration tests
 run against a real PostgreSQL via Testcontainers —
 not H2 — because the behaviour under test is frequently Postgres-specific (`SKIP LOCKED`, partial
 indexes, `jsonb`, the tenant discriminator). An in-memory substitute would pass while production
@@ -582,12 +582,13 @@ failed, which is worse than no test.
 | `FairnessSelectorTest` (9) | Starvation, weighting, ceilings, redistribution, rotation |
 | `CredentialCipherTest` (10) | Round trip, non-determinism, tamper detection, masking |
 | `BackoffCalculatorTest` (6) | Exponential growth, capping, jitter bounds, budget |
-| **Integration — 77 tests, real PostgreSQL** | |
+| **Integration — 85 tests, real PostgreSQL** | |
 | `AuthenticationIT` (12) | Tokens, tampering, account enumeration, default-deny |
 | `TenantIsolationIT` (9) | `findById` leakage, root scope, fail-closed defaults |
 | `PlatformAdminIT` (20) | Tenant lifecycle, rate limits, the full role boundary |
 | `TenantAdminApiIT` (18) | Channels, template versioning, cross-tenant boundary over HTTP |
 | `DeliveryPipelineIT` (13) | End-to-end delivery, scheduling, idempotency, cancellation |
+| `InboxIT` (8) | In-app delivery, unread counts, idempotent reads, tenant-scoped inboxes |
 | `RetryBehaviourIT` (3) | Retry exhaustion, attempt history, backoff spacing |
 | `ConcurrencyFairnessIT` (2) | Bounded pools and fairness under load |
 
@@ -680,6 +681,8 @@ Stated plainly rather than left for a reader to find.
 | Document | Contents |
 |---|---|
 | [`docs/06-walkthrough.md`](docs/06-walkthrough.md) | **Start here** — the whole system explained in plain language |
+| [`docs/07-deployment.md`](docs/07-deployment.md) | Hosting the service |
+| [`docs/08-real-providers.md`](docs/08-real-providers.md) | Which channels really deliver, and how to enable SMTP |
 | [`docs/00-original-requirement.md`](docs/00-original-requirement.md) | The brief, verbatim |
 | [`docs/01-clarifying-questions-and-answers.md`](docs/01-clarifying-questions-and-answers.md) | Every scoping question raised before implementation, and its answer |
 | [`docs/02-decision-log.md`](docs/02-decision-log.md) | 23 architecture decisions, each naming what was rejected and what it costs |

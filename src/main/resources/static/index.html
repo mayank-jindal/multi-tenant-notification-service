@@ -207,6 +207,31 @@
             <div id="send-result"></div>
         </section>
 
+        <!-- ------------------------------------------------ inbox -->
+        <section class="panel" data-panel="inbox" hidden>
+            <div class="panel-head">
+                <h2>In-app inbox</h2>
+                <p class="muted">The one channel with no third party: delivery means the message is
+                    readable here.</p>
+            </div>
+
+            <div class="card form-grid">
+                <div class="row">
+                    <div>
+                        <label for="inbox-ref">Recipient reference</label>
+                        <input id="inbox-ref" placeholder="cust-7" value="cust-7">
+                        <small class="muted">The tenant's own identifier for a person, as used when sending.</small>
+                    </div>
+                    <div class="actions-bottom">
+                        <button class="btn btn-primary" id="inbox-load">Open inbox</button>
+                        <button class="btn" id="inbox-read-all">Mark all read</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="inbox-messages" class="card-list"></div>
+        </section>
+
         <!-- ------------------------------------------------ delivery -->
         <section class="panel" data-panel="delivery" hidden>
             <div class="panel-head">

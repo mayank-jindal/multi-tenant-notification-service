@@ -42,7 +42,7 @@ Cut to fit the deadline. Each is a considered omission, not an oversight.
 
 | Omitted | Reasoning |
 |---|---|
-| In-app inbox read API | The IN_APP channel is delivered and tracked; what is missing is a recipient-facing endpoint to list and mark messages read. That is a consumer-side concern, and the brief puts UI out of scope. |
+| ~~In-app inbox read API~~ | **Since built.** Added after the assignment scope was met, because without it the IN_APP channel was only half a feature: delivered but unreadable. See `docs/08-real-providers.md`. |
 | Dead-letter replay endpoint | Exhausted notifications reach a terminal `FAILED` state and are queryable. Re-driving them is an operator convenience, not part of the delivery guarantee. |
 | Template preview endpoint | Rendering is exercised directly by unit tests. A preview endpoint would add API surface without adding capability. |
 | Postman collection | OpenAPI is served at `/v3/api-docs` with a Swagger UI, which any client can import. A hand-maintained collection would duplicate it and drift. |

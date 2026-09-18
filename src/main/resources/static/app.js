@@ -106,6 +106,7 @@ const TABS = {
     TENANT_ADMIN: [
         { id: 'send', label: 'Send' },
         { id: 'delivery', label: 'Delivery' },
+        { id: 'inbox', label: 'Inbox' },
         { id: 'templates', label: 'Templates' },
         { id: 'channels', label: 'Channels' },
     ],
@@ -150,6 +151,7 @@ function selectTab(id, button) {
     if (id === 'channels') loadChannels();
     if (id === 'templates') loadTemplates();
     if (id === 'send') loadSendForm();
+    if (id === 'inbox') loadInbox();
     if (id === 'delivery') { loadDelivery(); startPolling(); }
 }
 
@@ -481,6 +483,61 @@ function goToDelivery() {
     if (target) selectTab('delivery', target);
 }
 
+/* ---------------------------------------------------------------- inbox */
+
+async function loadInbox() {
+    const recipientRef = document.getElementById('inbox-ref').value.trim();
+    const target = document.getElementById('inbox-messages');
+
+    if (!recipientRef) {
+        target.innerHTML = '<p class="empty muted">Enter a recipient reference.</p>';
+        return;
+    }
+
+    target.innerHTML = '<p class="muted">Loading…</p>';
+    try {
+        const [page, count] = await Promise.all([
+            api(`/inbox?recipientRef=${encodeURIComponent(recipientRef)}&size=50`),
+            api(`/inbox/unread-count?recipientRef=${encodeURIComponent(recipientRef)}`),
+        ]);
+
+        if (!page.content.length) {
+            target.innerHTML = `<p class="empty muted">No messages for
+                <code>${escapeHtml(recipientRef)}</code> yet. Send one on the IN_APP channel.</p>`;
+            return;
+        }
+
+        const header = `<p class="muted">${count.unread} unread of ${page.totalElements}</p>`;
+
+        target.innerHTML = header + page.content.map(message => `
+            <div class="list-item" style="${message.read ? 'opacity:.65' : ''}">
+                <div class="list-item-main">
+                    <div class="list-item-title">
+                        ${message.read ? '' : '<span class="badge badge-info">NEW</span> '}
+                        ${escapeHtml(message.subject || 'Notification')}
+                    </div>
+                    <div>${escapeHtml(message.body)}</div>
+                    <div class="muted">${message.deliveredAt ? new Date(message.deliveredAt).toLocaleString() : ''}</div>
+                </div>
+                <div class="list-item-actions">
+                    ${message.read ? '<span class="muted">read</span>'
+                      : `<button class="btn btn-sm" onclick="markRead('${message.id}')">Mark read</button>`}
+                </div>
+            </div>`).join('');
+    } catch (error) {
+        target.innerHTML = `<div class="alert alert-error">${escapeHtml(error.message)}</div>`;
+    }
+}
+
+async function markRead(notificationId) {
+    try {
+        await api(`/inbox/${notificationId}/read`, { method: 'POST' });
+        loadInbox();
+    } catch (error) {
+        toast(error.message, 'err');
+    }
+}
+
 /* ---------------------------------------------------------------- delivery */
 
 const STATUS_STYLE = {
@@ -664,6 +721,18 @@ document.getElementById('tenant-form').onsubmit = createTenant;
 document.getElementById('template-form').onsubmit = createTemplate;
 document.getElementById('send-form').onsubmit = sendNotification;
 document.getElementById('delivery-filter').onchange = loadDelivery;
+document.getElementById('inbox-load').onclick = loadInbox;
+document.getElementById('inbox-read-all').onclick = async () => {
+    const recipientRef = document.getElementById('inbox-ref').value.trim();
+    if (!recipientRef) return;
+    try {
+        await api(`/inbox/read-all?recipientRef=${encodeURIComponent(recipientRef)}`, { method: 'POST' });
+        toast('All messages marked read', 'ok');
+        loadInbox();
+    } catch (error) {
+        toast(error.message, 'err');
+    }
+};
 document.getElementById('drawer-close').onclick = () => document.getElementById('drawer').hidden = true;
 document.getElementById('drawer').onclick = (event) => {
     if (event.target.id === 'drawer') document.getElementById('drawer').hidden = true;

@@ -105,4 +105,17 @@ public interface NotificationRepository
                                com.notifly.notification.delivery.NotificationStatus.DELIVERED)
             """)
     long countUnread(@Param("tenantId") UUID tenantId, @Param("recipientRef") String recipientRef);
+
+    /** Unread in-app messages for one recipient, for the mark-all-read operation. */
+    @Query("""
+            SELECT n FROM Notification n
+            WHERE n.tenantId = :tenantId
+              AND n.channel = com.notifly.notification.common.model.Channel.IN_APP
+              AND n.recipientRef = :recipientRef
+              AND n.readAt IS NULL
+              AND n.status IN (com.notifly.notification.delivery.NotificationStatus.SENT,
+                               com.notifly.notification.delivery.NotificationStatus.DELIVERED)
+            """)
+    List<Notification> findUnreadInApp(@Param("tenantId") UUID tenantId,
+                                       @Param("recipientRef") String recipientRef);
 }

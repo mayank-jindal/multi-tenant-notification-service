@@ -9,6 +9,7 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.Table;
 
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.UUID;
 
 /**
@@ -134,6 +135,7 @@ public class Notification extends TenantOwnedEntity {
             throw new IllegalStateException(
                     "Illegal notification transition " + status + " -> " + target + " for " + getId());
         }
+        at = toStorablePrecision(at);
         this.status = target;
         switch (target) {
             case SENT -> this.sentAt = at;
@@ -194,8 +196,20 @@ public class Notification extends TenantOwnedEntity {
 
     public void markRead(Instant at) {
         if (readAt == null) {
-            this.readAt = at;
+            this.readAt = toStorablePrecision(at);
         }
+    }
+
+    /**
+     * Truncates to microseconds, the precision PostgreSQL's {@code timestamptz} actually keeps.
+     *
+     * <p>Without this, the value returned immediately after a write carries nanoseconds while
+     * every later read of the same row carries microseconds — the same instant, reported two
+     * different ways. A client that stores the first response and compares it against a later
+     * one sees a mismatch that looks like the value changed when nothing did.
+     */
+    private static Instant toStorablePrecision(Instant at) {
+        return at == null ? null : at.truncatedTo(ChronoUnit.MICROS);
     }
 
     // ---------------------------------------------------------------- accessors
