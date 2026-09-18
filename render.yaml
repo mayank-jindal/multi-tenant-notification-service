@@ -2,7 +2,8 @@
 # reproducible from the repository rather than from remembered dashboard clicks.
 #
 # Deployment is out of scope for the assignment itself; this exists so the project can be hosted
-# as a portfolio piece. It lives on the `deploy` branch, keeping `main` as submitted.
+# as a portfolio piece. It was developed on a `deploy` branch and has since been merged, so it
+# tracks `main`.
 
 services:
   - type: web
@@ -10,7 +11,7 @@ services:
     runtime: docker
     plan: free
     region: singapore
-    branch: deploy
+    branch: main
     healthCheckPath: /api/v1/auth/login
 
     envVars:

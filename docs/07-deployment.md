@@ -1,8 +1,9 @@
 # Deployment
 
-> **Not part of the assignment.** The brief puts deployment out of scope, and `main` contains no
-> deployment artifacts. Everything here lives on the `deploy` branch so the project can be hosted
-> as a portfolio piece without changing what was submitted.
+> **Not part of the assignment.** The brief puts deployment out of scope. None of this existed
+> when the assignment work was completed; it was added afterwards, on a separate branch, so the
+> project could be hosted as a portfolio piece. That branch has since been merged, so everything
+> below tracks `main`.
 
 ## What the branch adds
 
@@ -15,12 +16,15 @@
 
 ## Deploying to Render
 
-1. Push the branch: `git push origin deploy`
-2. Go to **render.com → New → Blueprint**, connect the repository, select the `deploy` branch.
-3. Render reads `render.yaml` and creates both the web service and the PostgreSQL database.
-4. Set the two secrets it will prompt for: `ADMIN_EMAIL` and `ADMIN_PASSWORD`.
+1. Go to **render.com → New → Blueprint**, connect the repository, select the `main` branch.
+2. Render reads `render.yaml` and creates both the web service and the PostgreSQL database.
+3. Set the two secrets it will prompt for: `ADMIN_EMAIL` and `ADMIN_PASSWORD`.
    `JWT_SECRET` and `ENCRYPTION_KEY` are generated automatically.
-5. First build takes roughly five minutes. Flyway migrates the database on first boot.
+4. First build takes roughly five minutes. Flyway migrates the database on first boot.
+
+To send real email from the deployed instance, add the SMTP variables described in
+`08-real-providers.md`. Without them the EMAIL channel uses the simulator, which is a perfectly
+reasonable default for a public demo.
 
 The dashboard is then at the service URL, and Swagger at `/swagger-ui/index.html`.
 
