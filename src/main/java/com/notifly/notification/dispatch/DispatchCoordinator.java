@@ -111,12 +111,15 @@ public class DispatchCoordinator {
             int slots = entry.getValue();
 
             Instant leaseExpiry = Instant.now().plusSeconds(properties.leaseSeconds());
+            // One token per batch, carried through to the worker so it can prove it still owns
+            // the row when it finally runs.
+            UUID leaseToken = UUID.randomUUID();
             List<UUID> claimed = claimRepository.claimBatch(
-                    channel, tenantId, slots, leaseOwner, UUID.randomUUID(), Instant.now(), leaseExpiry);
+                    channel, tenantId, slots, leaseOwner, leaseToken, Instant.now(), leaseExpiry);
 
             for (UUID notificationId : claimed) {
                 boolean accepted = workerPools.submit(channel,
-                        () -> dispatcher.dispatch(tenantId, notificationId));
+                        () -> dispatcher.dispatch(tenantId, notificationId, leaseToken));
 
                 if (!accepted) {
                     // The pool filled between the capacity check and now. The notification stays

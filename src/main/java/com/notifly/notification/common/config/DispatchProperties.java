@@ -41,9 +41,20 @@ public record DispatchProperties(
         Map<Channel, Simulator> simulator) {
 
     public DispatchProperties {
-        workers = workers == null ? new EnumMap<>(Channel.class) : new EnumMap<>(workers);
-        simulator = simulator == null ? new EnumMap<>(Channel.class) : new EnumMap<>(simulator);
+        // EnumMap's copy constructor throws on an empty map because it cannot infer the key
+        // type from one, so an omitted configuration block has to be handled explicitly rather
+        // than copied. Left implicit, leaving out the workers block would crash startup.
+        workers = copyOrEmpty(workers);
+        simulator = copyOrEmpty(simulator);
         retry = retry == null ? Retry.defaults() : retry;
+    }
+
+    private static <V> Map<Channel, V> copyOrEmpty(Map<Channel, V> source) {
+        Map<Channel, V> copy = new EnumMap<>(Channel.class);
+        if (source != null) {
+            copy.putAll(source);
+        }
+        return copy;
     }
 
     /** Worker count for a channel, defaulting to a small pool rather than zero. */

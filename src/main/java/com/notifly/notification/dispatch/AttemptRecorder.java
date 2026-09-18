@@ -70,10 +70,15 @@ public class AttemptRecorder {
      * believing the message was never tried, and the retry would be a genuine duplicate that
      * nothing recorded.
      *
+     * <p>The lease token is verified, not just the status. A task can sit in the pool's queue
+     * long enough for its lease to expire, be reclaimed by the reaper, and be claimed again by
+     * another worker — at which point the row is back in {@code SENDING} and a status check alone
+     * would let both workers send it. Comparing the token proves this task still owns the row.
+     *
      * @return null when the notification is no longer dispatchable, in which case nothing is sent
      */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public PreparedAttempt beginAttempt(UUID notificationId) {
+    public PreparedAttempt beginAttempt(UUID notificationId, UUID expectedLeaseToken) {
         Notification notification = notificationRepository.findById(notificationId).orElse(null);
         if (notification == null) {
             log.warn("Claimed notification {} no longer exists", notificationId);
@@ -84,6 +89,14 @@ public class AttemptRecorder {
         if (notification.getStatus() != NotificationStatus.SENDING) {
             log.debug("Notification {} is {} and will not be dispatched",
                     notificationId, notification.getStatus());
+            return null;
+        }
+
+        if (expectedLeaseToken != null && !expectedLeaseToken.equals(notification.getLeaseToken())) {
+            // Our lease expired and the row was re-claimed by someone else. Sending now would be
+            // a genuine duplicate, so this task stands down and lets the current owner proceed.
+            log.warn("Lease for notification {} was taken over; standing down to avoid a duplicate send",
+                    notificationId);
             return null;
         }
 

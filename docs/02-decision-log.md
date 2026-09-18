@@ -361,3 +361,43 @@ ceremony than editing a field. In exchange, `notification.template_version_id` a
 the exact content that was rendered, and the publish swap is atomic: the old version is archived
 and flushed before the new one is published, because the unique index would otherwise reject the
 second row.
+
+---
+
+## ADR-022 — A dispatch task verifies its lease token, not just the status
+
+**Decision.** A worker is given the lease token its batch was claimed under, and
+`AttemptRecorder.beginAttempt` refuses to send unless the row still carries that exact token.
+
+**The race this closes.** A claimed row is stamped `SENDING` immediately, but the task that will
+send it may sit in the pool's bounded queue first. If it waits longer than the lease, the reaper
+returns the row to `QUEUED` and the coordinator claims it again — for a different worker. The row
+is now back in `SENDING`, so a status check alone passes for *both* tasks and the message is sent
+twice.
+
+**Why it was found.** The concurrency test measured rows in `SENDING` and reported 35 against a
+pool of 4. That was not the bug it looked like — `SENDING` means claimed-and-buffered, not
+actively sending — but chasing the discrepancy exposed the gap between claim time and send time,
+and therefore this race.
+
+**Consequence.** Delivery remains at-least-once; that cannot change while a third-party provider
+is involved. What changes is that the *internal* duplicate path is closed: a stale task stands
+down and logs, instead of sending a message the current owner is also sending.
+
+---
+
+## ADR-023 — Claimed work and in-flight work are different bounds
+
+**Decision.** Two separate limits, asserted separately. Concurrency is bounded by the pool's
+thread count. Claimed-but-not-yet-sent work is bounded by the pool's thread count *plus* its
+queue capacity.
+
+**Why the distinction matters.** A row is stamped `SENDING` when it is claimed, which happens
+before it reaches the queue. Reading "rows in SENDING" as "concurrent provider calls" conflates
+the two and makes a correctly bounded system look broken — which is precisely how the first
+version of the concurrency test failed.
+
+**Consequence.** The backpressure guarantee is the second bound: once the pool and its queue are
+full, the coordinator stops claiming and work stays in the database. That is what makes the queue
+capacity a real limit rather than a suggestion, and it is why the queue is an
+`ArrayBlockingQueue` with an abort policy rather than an unbounded one.

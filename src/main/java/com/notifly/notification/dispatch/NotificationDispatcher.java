@@ -46,10 +46,10 @@ public class NotificationDispatcher {
      * this is the place it matters most, because worker threads have no request to inherit a
      * scope from.
      */
-    public void dispatch(UUID tenantId, UUID notificationId) {
+    public void dispatch(UUID tenantId, UUID notificationId, UUID leaseToken) {
         TenantContext.runAs(TenantScope.of(tenantId), () -> {
             try {
-                deliver(notificationId);
+                deliver(notificationId, leaseToken);
             } catch (RuntimeException ex) {
                 // A worker must never die of an unhandled exception: the pool would silently lose
                 // a thread and throughput would decay with no obvious cause. The expiring lease
@@ -60,8 +60,8 @@ public class NotificationDispatcher {
         });
     }
 
-    private void deliver(UUID notificationId) {
-        AttemptRecorder.PreparedAttempt prepared = attemptRecorder.beginAttempt(notificationId);
+    private void deliver(UUID notificationId, UUID leaseToken) {
+        AttemptRecorder.PreparedAttempt prepared = attemptRecorder.beginAttempt(notificationId, leaseToken);
         if (prepared == null) {
             return;
         }

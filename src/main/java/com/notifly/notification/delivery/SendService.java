@@ -3,6 +3,7 @@ package com.notifly.notification.delivery;
 import com.notifly.notification.audit.AuditEventType;
 import com.notifly.notification.audit.AuditService;
 import com.notifly.notification.channel.ChannelConfigService;
+import com.notifly.notification.common.config.DispatchProperties;
 import com.notifly.notification.common.error.ErrorCode;
 import com.notifly.notification.common.error.Errors;
 import com.notifly.notification.common.model.Channel;
@@ -64,6 +65,7 @@ public class SendService {
     private final SuppressionRepository suppressionRepository;
     private final RateLimiter rateLimiter;
     private final TenantService tenantService;
+    private final DispatchProperties dispatchProperties;
     private final AuditService auditService;
 
     public SendService(NotificationRequestRepository requestRepository,
@@ -75,6 +77,7 @@ public class SendService {
                        SuppressionRepository suppressionRepository,
                        RateLimiter rateLimiter,
                        TenantService tenantService,
+                       DispatchProperties dispatchProperties,
                        AuditService auditService) {
         this.requestRepository = requestRepository;
         this.notificationRepository = notificationRepository;
@@ -85,6 +88,7 @@ public class SendService {
         this.suppressionRepository = suppressionRepository;
         this.rateLimiter = rateLimiter;
         this.tenantService = tenantService;
+        this.dispatchProperties = dispatchProperties;
         this.auditService = auditService;
     }
 
@@ -170,9 +174,12 @@ public class SendService {
             notification.setPriority(request.priorityOrDefault());
             notification.setDedupeHash(plan.dedupeHash());
 
-            if (request.maxAttempts() != null) {
-                notification.setMaxAttempts(request.maxAttempts());
-            }
+            // The configured retry budget is applied here. Relying on the entity's field default
+            // would silently ignore notifly.dispatch.retry.max-attempts, leaving the setting
+            // inert with nothing to indicate it had no effect.
+            notification.setMaxAttempts(request.maxAttempts() != null
+                    ? request.maxAttempts()
+                    : dispatchProperties.retry().maxAttempts());
 
             if (scheduled) {
                 notification.setScheduledAt(request.scheduledAt());
