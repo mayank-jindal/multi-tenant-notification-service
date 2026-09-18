@@ -9,7 +9,7 @@ recommended; the **Answer** column records what was actually chosen.
 | # | Question | Recommended ⭐ | Answer |
 |---|----------|---------------|--------|
 | 1 | Language / framework | Java + Spring Boot | ⭐ accepted |
-| 2 | Java version | 21 LTS | **overridden → Java 25** (see Round 2) |
+| 2 | Java version | 21 LTS | initially overridden to 25, then **returned to 21** (see Round 3) |
 | 3 | Build tool | Maven | ⭐ accepted |
 | 4 | Package / group id | `com.notifly.notification` | ⭐ accepted |
 | 5 | Artifact id | `multi-tenant-notification-service` | ⭐ accepted |
@@ -79,3 +79,20 @@ The brief places *deployment and containerization* out of scope. The committed c
 contains **only PostgreSQL** — it is a local development dependency, exactly like installing
 Postgres natively would be. The application itself is never containerized, and no deployment
 artifacts (Dockerfile, k8s manifests, CI pipelines) exist in this repository.
+
+
+## Round 3 — returning to Java 21
+
+Java 25 was chosen in Round 2 because it was the only JDK installed on the development machine
+and avoided an installation step. Revisited before submission and reversed.
+
+**Reasoning.** The project is submitted to be built and run by someone else. Java 25 is recent
+enough that an assessor is unlikely to have it, and `mvn verify` fails immediately on an older
+JDK with an unhelpful class-version error — a failure that says nothing about the work itself.
+Java 21 is the current mainstream LTS and the version most likely to already be present.
+
+**Cost of the change.** None to the source. Temurin 21 was installed, `java.version` was changed
+to 21, and all 123 tests passed with no code modifications — no Java 22+ language or library
+feature had been used. Spring Boot 4's baseline is Java 17, so the framework was unaffected.
+
+**Result.** The project targets Java 21 and builds unchanged on later JDKs.

@@ -9,7 +9,7 @@ state transition.
 Built as an assignment. The original brief is preserved verbatim in
 [`docs/00-original-requirement.md`](docs/00-original-requirement.md).
 
-**Java 25 · Spring Boot 4.1.1 · PostgreSQL 16 · Flyway · Spring Security (JWT) · Testcontainers**
+**Java 21 · Spring Boot 4.1.1 · PostgreSQL 16 · Flyway · Spring Security (JWT) · Testcontainers**
 
 ---
 
@@ -34,7 +34,11 @@ Built as an assignment. The original brief is preserved verbatim in
 
 ## Quick start
 
-**Prerequisites:** JDK 25, Maven 3.9+, Docker (for PostgreSQL only).
+**Prerequisites:** JDK 21+, Maven 3.9+, Docker (for PostgreSQL only).
+
+> Targets **Java 21 LTS**. Spring Boot 4 has a Java 17 baseline, so 21 is a deliberate
+> choice rather than a floor: it is the version most likely to already be installed, and the
+> project builds unchanged on later JDKs.
 
 ```bash
 # 1. Start PostgreSQL

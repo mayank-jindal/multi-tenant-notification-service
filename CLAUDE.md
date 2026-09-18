@@ -16,7 +16,7 @@ Built as an assignment. The full brief is in `docs/00-original-requirement.md`.
 
 | Concern | Choice |
 |---------|--------|
-| Language | Java 25 |
+| Language | Java 21 (LTS) |
 | Framework | Spring Boot 4.1.1 |
 | Build | Maven 3.9+ |
 | Database | PostgreSQL 16 (local, via `docker compose up -d`) |
