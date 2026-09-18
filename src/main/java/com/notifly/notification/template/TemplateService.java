@@ -48,15 +48,18 @@ public class TemplateService {
     private final TemplateRepository templateRepository;
     private final TemplateVersionRepository versionRepository;
     private final TemplateChannelBodyRepository bodyRepository;
+    private final TemplateRenderer renderer;
     private final AuditService auditService;
 
     public TemplateService(TemplateRepository templateRepository,
                            TemplateVersionRepository versionRepository,
                            TemplateChannelBodyRepository bodyRepository,
+                           TemplateRenderer renderer,
                            AuditService auditService) {
         this.templateRepository = templateRepository;
         this.versionRepository = versionRepository;
         this.bodyRepository = bodyRepository;
+        this.renderer = renderer;
         this.auditService = auditService;
     }
 
@@ -214,6 +217,11 @@ public class TemplateService {
             throw Errors.badRequest(ErrorCode.VALIDATION_FAILED,
                     "Cannot publish a version with no channel bodies");
         }
+
+        // The strictness check happens here rather than at send time, because this is the moment
+        // the author is present and can fix a typo. At send time the only options would be to
+        // fail a caller's request or to deliver something wrong.
+        renderer.validateBodiesAgainstDeclaration(version.getVariables(), bodies);
 
         Integer previous = null;
         var currentlyPublished = versionRepository
