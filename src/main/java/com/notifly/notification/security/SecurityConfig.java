@@ -39,6 +39,20 @@ public class SecurityConfig {
             "/swagger-ui.html"
     };
 
+    /**
+     * The dashboard's static files.
+     *
+     * <p>Listed individually rather than as a wildcard. A pattern like {@code /**} would open
+     * every unmatched path, which would quietly undo the default-deny posture the rest of this
+     * chain depends on — and it would do so invisibly, because nothing would fail.
+     *
+     * <p>These files contain no data. Everything the dashboard displays is fetched from the same
+     * authenticated API any other client uses.
+     */
+    private static final String[] STATIC_PATHS = {
+            "/", "/index.html", "/app.js", "/styles.css", "/favicon.ico"
+    };
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http,
                                                    JwtService jwtService,
@@ -52,6 +66,7 @@ public class SecurityConfig {
                 .httpBasic(basic -> basic.disable())
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(PUBLIC_PATHS).permitAll()
+                        .requestMatchers(STATIC_PATHS).permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .anyRequest().authenticated())
                 .exceptionHandling(handling -> handling
