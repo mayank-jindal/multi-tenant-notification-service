@@ -18,12 +18,21 @@ services:
       - key: SPRING_PROFILES_ACTIVE
         value: prod
 
-      # Supplied by Render from the database below. Rendered as a JDBC URL because Render's
-      # native connection string is postgres:// and the JDBC driver will not accept it.
-      - key: DB_URL
+      # Supplied piece by piece rather than as Render's connectionString, which is a
+      # postgres://user:pass@host/db URL that the JDBC driver rejects outright. The prod profile
+      # assembles a proper jdbc:postgresql:// URL from these three.
+      - key: DB_HOST
         fromDatabase:
           name: notifly-db
-          property: connectionString
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: notifly-db
+          property: port
+      - key: DB_NAME
+        fromDatabase:
+          name: notifly-db
+          property: database
       - key: DB_USERNAME
         fromDatabase:
           name: notifly-db

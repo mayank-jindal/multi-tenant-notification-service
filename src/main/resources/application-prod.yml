@@ -7,6 +7,17 @@
 
 spring:
   datasource:
+    # Assembled from the parts a managed provider supplies. Most of them hand out a
+    # postgres://user:pass@host/db connection string, which the JDBC driver will not accept, so
+    # the URL is built here rather than passed through.
+    # sslmode defaults to require, because a managed database reached over the public internet
+    # should not be spoken to in clear text. It stays overridable so the prod profile can be
+    # exercised locally against a database without TLS - a profile that cannot be tested before
+    # it is deployed is a profile nobody has tested.
+    url: jdbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_NAME}?sslmode=${DB_SSLMODE:require}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+
     hikari:
       # Small instances have small connection allowances. Twenty connections would exhaust a
       # free-tier database before the application even became busy.

@@ -28,6 +28,45 @@ reasonable default for a public demo.
 
 The dashboard is then at the service URL, and Swagger at `/swagger-ui/index.html`.
 
+## Verifying before you deploy
+
+The image and the production profile were exercised locally before ever reaching Render, because
+a failed build there costs five minutes per attempt and tells you very little:
+
+```bash
+docker build -t notifly:test .
+
+# The prod profile must refuse the development keys. A refusal here is the correct outcome.
+docker run --rm --network multi-tenant-notification-service_default   -e SPRING_PROFILES_ACTIVE=prod -e DB_SSLMODE=disable   -e DB_HOST=notifly-postgres -e DB_PORT=5432 -e DB_NAME=notifications   -e DB_USERNAME=notify -e DB_PASSWORD=notify   notifly:test
+
+# With real secrets it should start and serve.
+docker run --rm -p 8090:8080 --network multi-tenant-notification-service_default   -e SPRING_PROFILES_ACTIVE=prod -e DB_SSLMODE=disable   -e DB_HOST=notifly-postgres -e DB_PORT=5432 -e DB_NAME=notifications   -e DB_USERNAME=notify -e DB_PASSWORD=notify   -e JWT_SECRET=<32+ chars> -e ENCRYPTION_KEY=<32+ chars>   -e ADMIN_EMAIL=you@example.com -e ADMIN_PASSWORD=<password>   notifly:test
+```
+
+Two problems were found this way and fixed rather than discovered in a deploy log:
+
+- **The blueprint fed Render's `connectionString` straight to JDBC.** Render supplies
+  `postgres://user:pass@host/db`; the driver only accepts `jdbc:postgresql://host:port/db`. The
+  host, port and database are now passed separately and the URL is assembled in the profile.
+- **`sslmode=require` was hardcoded**, which is right for a managed database reached over the
+  internet but made the production profile impossible to exercise anywhere without TLS. A profile
+  that cannot be tested before deployment is a profile nobody has tested. It is now
+  `${DB_SSLMODE:require}` — secure by default, overridable for a local run.
+
+Measured in the container: **~310MB resident**, comfortably inside Render's 512MB free instance.
+
+## A bootstrap detail worth knowing
+
+The first platform administrator is created **only when none exists**. It is not an upsert, so a
+redeploy cannot silently reset the credentials of an account whose password someone has since
+changed.
+
+The consequence at deploy time: pointed at a **fresh** database, `ADMIN_EMAIL` and
+`ADMIN_PASSWORD` create your account. Pointed at a database that already has an administrator,
+both are ignored and the existing account remains — which is confusing if you expected otherwise
+and are staring at a login failure. Render's blueprint creates a new database, so the first deploy
+behaves as expected.
+
 ## Things that behave differently once deployed
 
 **The free instance sleeps after 15 minutes of inactivity.** The first request afterwards takes
